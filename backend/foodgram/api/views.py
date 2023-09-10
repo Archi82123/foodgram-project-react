@@ -1,11 +1,23 @@
-from rest_framework import generics
+from rest_framework import generics, viewsets
 
 from users.models import User
-from .serializers import SignUpSerializer
-from .pagination import SignUpPagination
+from recipes.models import Tag
+from .serializers import UsersSerializer, TagSerializer
+from .pagination import UsersPagination
 
 
-class SignUpView(generics.ListCreateAPIView):
+class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = SignUpSerializer
-    pagination_class = SignUpPagination
+    serializer_class = UsersSerializer
+    pagination_class = UsersPagination
+
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer

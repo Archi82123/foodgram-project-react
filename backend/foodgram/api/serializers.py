@@ -4,8 +4,10 @@ from djoser.serializers import UserCreateSerializer
 
 from .validators import UnicodeUsernameValidator
 
+from recipes.models import Tag
 
-class SignUpSerializer(UserCreateSerializer):
+
+class UsersSerializer(UserCreateSerializer):
     """Сериализация для регистрации пользователя"""
     id = serializers.ReadOnlyField()
     email = serializers.CharField(
@@ -45,3 +47,9 @@ class SignUpSerializer(UserCreateSerializer):
             'last_name',
             'password'
         )
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('id', 'name', 'color', 'slug')
