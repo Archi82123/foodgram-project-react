@@ -4,7 +4,7 @@ from djoser.serializers import UserCreateSerializer
 
 from .validators import UnicodeUsernameValidator
 
-from recipes.models import Tag
+from recipes.models import Tag, Ingredient
 
 
 class UsersSerializer(UserCreateSerializer):
@@ -53,3 +53,9 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ('id', 'name', 'color', 'slug')
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ('id', 'name', 'measurement_unit')

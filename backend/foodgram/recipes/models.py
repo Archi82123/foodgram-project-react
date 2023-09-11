@@ -5,9 +5,9 @@ User = get_user_model()
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=255, verbose_name='Название ингредиента')
-    measurement_unit = models.CharField(max_length=50, verbose_name='Единица измерения')
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Количество')
+    name = models.CharField(max_length=200, verbose_name='Название ингредиента')
+    measurement_unit = models.CharField(max_length=200, verbose_name='Единица измерения')
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name='Количество')
 
     def __str__(self):
         return self.name
@@ -18,8 +18,8 @@ class Ingredient(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=255, verbose_name='Название тега')
-    slug = models.SlugField(max_length=50, unique=True, verbose_name='Слаг тега')
+    name = models.CharField(max_length=200, verbose_name='Название тега')
+    slug = models.SlugField(max_length=200, unique=True, verbose_name='Слаг тега')
     color = models.CharField(max_length=7, default='#007bff', verbose_name='Цвет тега')
 
     def __str__(self):
@@ -51,7 +51,7 @@ class Recipe(models.Model):
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
     ingredient = models.ForeignKey('Ingredient', on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     class Meta:
         unique_together = ('recipe', 'ingredient')
