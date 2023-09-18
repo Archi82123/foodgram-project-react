@@ -7,7 +7,6 @@ User = get_user_model()
 class Ingredient(models.Model):
     name = models.CharField(max_length=200, verbose_name='Название ингредиента')
     measurement_unit = models.CharField(max_length=200, verbose_name='Единица измерения')
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name='Количество')
 
     def __str__(self):
         return self.name
@@ -32,16 +31,15 @@ class Tag(models.Model):
 
 class Recipe(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Автор')
-    title = models.CharField(max_length=255, verbose_name='Название рецепта')
-    description = models.TextField(verbose_name='Описание рецепта')
-    ingredients = models.ManyToManyField('Ingredient', through='RecipeIngredient', verbose_name='Ингредиенты')
-    tags = models.ManyToManyField('Tag', verbose_name='Теги')
-    image = models.ImageField(upload_to='recipes/', verbose_name='Изображение рецепта')
+    name = models.CharField(max_length=200, verbose_name='Название рецепта')
+    text = models.TextField(verbose_name='Описание рецепта')
+    ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient', verbose_name='Ингредиенты')
+    tags = models.ManyToManyField(Tag, verbose_name='Теги')
+    image = models.ImageField(upload_to='recipes/images/', verbose_name='Изображение рецепта')
     cooking_time = models.PositiveIntegerField(verbose_name='Время приготовления (в минутах)')
-    # pub_date = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата публикации')
 
     def __str__(self):
-        return self.title
+        return self.name
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -49,9 +47,9 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
-    ingredient = models.ForeignKey('Ingredient', on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredients_used', verbose_name='Рецепт')
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='recipes_used', verbose_name='Ингредиент')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name='Количество')
 
     class Meta:
         unique_together = ('recipe', 'ingredient')
