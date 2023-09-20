@@ -54,18 +54,6 @@ class RecipeIngredient(models.Model):
     class Meta:
         unique_together = ('recipe', 'ingredient')
 
-# class Subscription(models.Model):
-#     user = models.ForeignKey(User, related_name='subscriptions', on_delete=models.CASCADE, verbose_name='Подписчик')
-#     author = models.ForeignKey(User, related_name='subscribers', on_delete=models.CASCADE, verbose_name='Автор')
-#
-#     def __str__(self):
-#         return f'{self.user} подписан на {self.author}'
-#
-#     class Meta:
-#         unique_together = ['user', 'author']
-#         verbose_name = 'Подписка'
-#         verbose_name_plural = 'Подписки'
-
 
 # class ShoppingList(models.Model):
 #     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
