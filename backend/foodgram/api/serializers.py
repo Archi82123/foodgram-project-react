@@ -58,8 +58,21 @@ class UsersSerializer(UserCreateSerializer):
             'username',
             'first_name',
             'last_name',
-            'password'
+            'password',
         )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+
+        if request and request.method == 'GET':
+            if request.user.is_authenticated:
+                user = request.user
+                data['is_subscribed'] = Subscription.objects.filter(user=user, author=instance).exists()
+            else:
+                data.pop('is_subscribed', None)
+
+        return data
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -128,16 +141,17 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
-    # is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Subscription
-        fields = ('author', 'recipes', 'recipes_count')
+        fields = ('author', 'recipes', 'recipes_count', 'is_subscribed')
 
     def to_representation(self, instance):
         author = instance.author
-        # user = self.context['request'].user
+        user = self.context['request'].user
+        is_subscribed = Subscription.objects.filter(user=user, author=author).exists()
 
         data = {
             'email': author.email,
@@ -145,7 +159,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'username': author.username,
             'first_name': author.first_name,
             'last_name': author.last_name,
-            # 'is_subscribed': user.is_authenticated and user.subscriptions.filter(author=author).exists(),
+            'is_subscribed': is_subscribed,
             'recipes': self.get_recipes(author),
             'recipes_count': Recipe.objects.filter(author=author).count()
         }
@@ -162,9 +176,3 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             }
             for recipe in recipes
         ]
-
-
-class SubSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Subscription
-        fields = ('id', 'user', 'author')

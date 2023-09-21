@@ -1,13 +1,14 @@
 from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
-from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.generics import CreateAPIView, DestroyAPIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from users.models import User, Subscription
 from recipes.models import Tag, Ingredient, Recipe
 
-from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer, SubscriptionSerializer, SubSerializer
+from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer, SubscriptionSerializer
 from .pagination import UsersPagination, RecipesPagination
 
 
@@ -15,12 +16,47 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UsersSerializer
     pagination_class = UsersPagination
+    permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+
+    def get_permissions(self):
+        if self.action in ['create', 'list']:
+            return [AllowAny()]
+        return super().get_permissions()
+
+    @action(detail=False, methods=['GET'], url_path='me', permission_classes=[IsAuthenticated])
+    def me(self, request):
+        user = request.user
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'], url_path='subscriptions')
+    def subscriptions(self, request):
+        user = self.request.user
+        subscriptions = Subscription.objects.filter(user=user)
+        page = self.paginate_queryset(subscriptions)
+        serializer = SubscriptionSerializer(subscriptions, many=True,
+                                            context={'request': request})
+        return self.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=['POST'], url_path='set_password', permission_classes=[IsAuthenticated])
+    def set_password(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not user.check_password(current_password):
+            return Response({'detail': 'Текущий пароль неверен.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'detail': 'Пароль успешно изменен.'}, status=status.HTTP_200_OK)
 
 
 class TagViewSet(viewsets.ModelViewSet):  #ReadOnlyModelViewSet
@@ -58,7 +94,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
 
 
-class SubscribeUserView(CreateAPIView):
+class SubscribeUserView(CreateAPIView, DestroyAPIView):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
@@ -73,11 +109,24 @@ class SubscribeUserView(CreateAPIView):
             return Response({'detail': 'Вы уже подписаны на этого пользователя.'}, status=status.HTTP_400_BAD_REQUEST)
 
         subscription = Subscription.objects.create(user=request.user, author=author)
-        serializer = SubscriptionSerializer(subscription)
+        serializer = self.get_serializer(subscription, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        author = get_object_or_404(User, id=kwargs.get('id'))
+        subscription = Subscription.objects.filter(user=request.user, author=author).first()
+
+        if subscription:
+            subscription.delete()
+            return Response({'detail': 'Вы успешно отписались от пользователя.'}, status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response({'detail': 'Вы не подписаны на этого пользователя.'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class SubscriptionViewSet(viewsets.ModelViewSet):
     queryset = Subscription.objects.all()
-    serializer_class = SubSerializer
+    serializer_class = SubscriptionSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = UsersPagination
