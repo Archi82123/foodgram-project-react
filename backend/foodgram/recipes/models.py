@@ -47,9 +47,9 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredients_used', verbose_name='Рецепт')
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='recipes_used', verbose_name='Ингредиент')
-    amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name='Количество')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='recipe_m2m', verbose_name='Рецепт')
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='ingredient_m2m', verbose_name='Ингредиент')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Количество')
 
     class Meta:
         unique_together = ('recipe', 'ingredient')
@@ -67,13 +67,11 @@ class RecipeIngredient(models.Model):
 #         verbose_name_plural = 'Корзины покупок'
 
 
-# class Favorite(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
-#     recipes = models.ManyToManyField('Recipe', related_name='favorited_by', verbose_name='Избранные рецепты')
-#
-#     def __str__(self):
-#         return f'Избранное для {self.user}'
-#
-#     class Meta:
-#         verbose_name = 'Избранное'
-#         verbose_name_plural = 'Избранные'
+class FavoriteRecipe(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_recipes', verbose_name='Пользователь')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorited_by', verbose_name='Избранный рецепт')
+
+    class Meta:
+        unique_together = ('user', 'recipe')
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранные'

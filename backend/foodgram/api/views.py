@@ -6,9 +6,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from users.models import User, Subscription
-from recipes.models import Tag, Ingredient, Recipe
+from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe
 
-from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer, SubscriptionSerializer
+from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer, SubscriptionSerializer, FavoriteRecipeSerializer
 from .pagination import UsersPagination, RecipesPagination
 
 
@@ -75,13 +75,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
-
         author_id = self.request.query_params.get('author')
+        tags = self.request.query_params.getlist('tags')
+
         if author_id:
             author = get_object_or_404(User, id=author_id)
             queryset = queryset.filter(author=author)
 
-        tags = self.request.query_params.getlist('tags')
         if tags:
             queryset = queryset.filter(tags__slug__in=tags)
 
@@ -93,6 +93,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         else:
             return RecipeReadSerializer
 
+    @action(detail=True, methods=['POST', 'DELETE'], url_path='favorite', permission_classes=[IsAuthenticated])
+    def favorite(self, request, pk=None):
+        recipe = self.get_object()
+        user = request.user
+        favorite_recipe = FavoriteRecipe.objects.filter(user=user, recipe=recipe).first()
+
+        if request.method == 'POST':
+            if not favorite_recipe:
+                favorite_recipe = FavoriteRecipe.objects.create(user=user, recipe=recipe)
+                serializer = FavoriteRecipeSerializer(favorite_recipe)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response({'detail': 'Рецепт уже в избранном'}, status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'DELETE':
+            if favorite_recipe:
+                favorite_recipe.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'detail': 'Этого рецепта нет в избранном'}, status=status.HTTP_400_BAD_REQUEST)
 
 class SubscribeUserView(CreateAPIView, DestroyAPIView):
     queryset = Subscription.objects.all()
@@ -123,10 +140,3 @@ class SubscribeUserView(CreateAPIView, DestroyAPIView):
         else:
             return Response({'detail': 'Вы не подписаны на этого пользователя.'},
                             status=status.HTTP_400_BAD_REQUEST)
-
-
-class SubscriptionViewSet(viewsets.ModelViewSet):
-    queryset = Subscription.objects.all()
-    serializer_class = SubscriptionSerializer
-    permission_classes = [IsAuthenticated]
-    pagination_class = UsersPagination

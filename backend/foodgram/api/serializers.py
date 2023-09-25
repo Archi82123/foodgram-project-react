@@ -7,7 +7,7 @@ from djoser.serializers import UserCreateSerializer
 from .validators import UnicodeUsernameValidator
 
 from users.models import Subscription
-from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
+from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient, FavoriteRecipe
 
 
 class Base64ImageField(serializers.ImageField):
@@ -98,35 +98,42 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class RecipeCreateSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
-    ingredients = RecipeIngredientSerializer(many=True)
+    # ingredients = RecipeIngredientSerializer(many=True)
     image = Base64ImageField()
 
     class Meta:
         model = Recipe
-        fields = ('id', 'tags', 'author', 'ingredients', 'name', 'image', 'text', 'cooking_time')
+        fields = ('id', 'tags', 'author',  'name', 'image', 'text', 'cooking_time')
+
+    # def create(self, validated_data):
+    #     ingredients_data = validated_data.pop('ingredients')
+    #     tags_data = validated_data.pop('tags')
+    #     recipe = Recipe.objects.create(**validated_data)
+    #
+    #     for ingredient_data in ingredients_data:
+    #         ingredient = ingredient_data['id']
+    #         amount = ingredient_data['amount']
+    #
+    #         RecipeIngredient.objects.create(recipe=recipe, ingredient=ingredient, amount=amount)
+    #
+    #     recipe.tags.set(tags_data)
+    #
+    #     return recipe
 
     def to_representation(self, instance):
+        request = self.context.get('request')
+        user = request.user if request else None
         tags_info = TagSerializer(instance.tags.all(), many=True).data
+        author_info = UsersSerializer(instance.author).data
+
         data = super().to_representation(instance)
         data['tags'] = tags_info
+        data['author'] = author_info
+
+        if user and user.is_authenticated:
+            data['author']['is_subscribed'] = Subscription.objects.filter(user=user, author=instance.author).exists()
+
         return data
-
-    def create(self, validated_data):
-        ingredients_data = validated_data.pop('ingredients')
-        tags_data = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
-
-        for ingredient_data in ingredients_data:
-            ingredient = ingredient_data['id']
-            amount = ingredient_data['amount']
-
-            print(f"Ingredient: {ingredient}, Amount: {amount}")
-
-            RecipeIngredient.objects.create(recipe=recipe, ingredient=ingredient, amount=amount)
-
-        recipe.tags.set(tags_data)
-
-        return recipe
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -176,3 +183,21 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             }
             for recipe in recipes
         ]
+
+
+class FavoriteRecipeSerializer(serializers.ModelSerializer):
+    recipe = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FavoriteRecipe
+        fields = ('recipe',)
+
+    def to_representation(self, instance):
+        recipe = instance.recipe
+        data = {
+            'id': recipe.id,
+            'name': recipe.name,
+            'image': recipe.image.url,
+            'cooking_time': recipe.cooking_time,
+        }
+        return data
