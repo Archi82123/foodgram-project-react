@@ -3,11 +3,12 @@ from django.core.validators import EmailValidator
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 from djoser.serializers import UserCreateSerializer
+from rest_framework.generics import get_object_or_404
 
 from .validators import UnicodeUsernameValidator
 
 from users.models import Subscription
-from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient, FavoriteRecipe
+from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient, FavoriteRecipe, ShoppingCart
 
 
 class Base64ImageField(serializers.ImageField):
@@ -88,37 +89,39 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    ingredient = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
         model = RecipeIngredient
-        fields = ('id', 'amount')
+        fields = ('ingredient', 'amount')
+        read_only_fields = ('ingredient',)
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
-    # ingredients = RecipeIngredientSerializer(many=True)
+    ingredients = RecipeIngredientSerializer(many=True, source='recipe_m2m')
     image = Base64ImageField()
 
     class Meta:
         model = Recipe
-        fields = ('id', 'tags', 'author',  'name', 'image', 'text', 'cooking_time')
+        fields = ('id', 'tags', 'author', 'ingredients', 'name', 'image', 'text', 'cooking_time')
 
-    # def create(self, validated_data):
-    #     ingredients_data = validated_data.pop('ingredients')
-    #     tags_data = validated_data.pop('tags')
-    #     recipe = Recipe.objects.create(**validated_data)
-    #
-    #     for ingredient_data in ingredients_data:
-    #         ingredient = ingredient_data['id']
-    #         amount = ingredient_data['amount']
-    #
-    #         RecipeIngredient.objects.create(recipe=recipe, ingredient=ingredient, amount=amount)
-    #
-    #     recipe.tags.set(tags_data)
-    #
-    #     return recipe
+    def create(self, validated_data):
+        ingredients = validated_data.pop('recipe_m2m')
+        recipe = Recipe.objects.create(**validated_data)
+
+        for ingredient in ingredients:
+            current_ingredient = ingredient.get('ingredient')
+            amount = ingredient.get('amount')
+            recipe.ingredients.add(
+                current_ingredient,
+                through_defaults={
+                    'amount': amount
+                }
+             )
+
+        return recipe
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -185,12 +188,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         ]
 
 
-class FavoriteRecipeSerializer(serializers.ModelSerializer):
+class BaseRecipeSerializer(serializers.ModelSerializer):
     recipe = serializers.SerializerMethodField()
 
     class Meta:
-        model = FavoriteRecipe
-        fields = ('recipe',)
+        abstract = True
 
     def to_representation(self, instance):
         recipe = instance.recipe
@@ -201,3 +203,15 @@ class FavoriteRecipeSerializer(serializers.ModelSerializer):
             'cooking_time': recipe.cooking_time,
         }
         return data
+
+
+class FavoriteRecipeSerializer(BaseRecipeSerializer):
+    class Meta:
+        model = FavoriteRecipe
+        fields = ('recipe',)
+
+
+class ShoppingCartSerializer(BaseRecipeSerializer):
+    class Meta:
+        model = ShoppingCart
+        fields = ('recipe',)

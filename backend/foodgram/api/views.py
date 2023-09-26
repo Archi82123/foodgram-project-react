@@ -1,3 +1,4 @@
+from django.db.migrations import serializer
 from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
@@ -6,9 +7,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from users.models import User, Subscription
-from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe
+from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe, RecipeIngredient, ShoppingCart
 
-from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer, SubscriptionSerializer, FavoriteRecipeSerializer
+from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer
 from .pagination import UsersPagination, RecipesPagination
 
 
@@ -90,8 +91,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return RecipeCreateSerializer
-        else:
-            return RecipeReadSerializer
+        return RecipeReadSerializer
 
     @action(detail=True, methods=['POST', 'DELETE'], url_path='favorite', permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
@@ -110,6 +110,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 favorite_recipe.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response({'detail': 'Этого рецепта нет в избранном'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['POST', 'DELETE'], url_path='shopping_cart', permission_classes=[IsAuthenticated])
+    def shopping_cart(self, request, pk=None):
+        recipe = self.get_object()
+        user = request.user
+        cart_recipe = ShoppingCart.objects.filter(user=user, recipe=recipe).first()
+
+        if request.method == 'POST':
+            if not cart_recipe:
+                cart_recipe = ShoppingCart.objects.create(user=user, recipe=recipe)
+                serializer = ShoppingCartSerializer(cart_recipe)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response({'detail': 'Рецепт уже в списке покупок'}, status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'DELETE':
+            if cart_recipe:
+                cart_recipe.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'detail': 'Этого рецепта нет в списке покупок'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class SubscribeUserView(CreateAPIView, DestroyAPIView):
     queryset = Subscription.objects.all()

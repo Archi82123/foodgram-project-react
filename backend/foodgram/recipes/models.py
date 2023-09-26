@@ -52,19 +52,12 @@ class RecipeIngredient(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Количество')
 
     class Meta:
-        unique_together = ('recipe', 'ingredient')
-
-
-# class ShoppingList(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
-#     recipes = models.ManyToManyField('Recipe', related_name='shopping_lists', verbose_name='Рецепты')
-#
-#     def __str__(self):
-#         return f'Корзина покупок для {self.user}'
-#
-#     class Meta:
-#         verbose_name = 'Корзина покупок'
-#         verbose_name_plural = 'Корзины покупок'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('recipe', 'ingredient'),
+                name='uniq_recipe_ingredient'
+            ),
+        )
 
 
 class FavoriteRecipe(models.Model):
@@ -72,6 +65,23 @@ class FavoriteRecipe(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorited_by', verbose_name='Избранный рецепт')
 
     class Meta:
-        unique_together = ('user', 'recipe')
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('user', 'recipe'),
+                name='uniq_favorite_recipe'
+            ),
+        )
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart_recipes', verbose_name='Пользователь')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='users_cart', verbose_name='Рецепты')
+
+    def __str__(self):
+        return f'Корзина покупок для {self.user}'
+
+    class Meta:
+        verbose_name = 'Корзина покупок'
+        verbose_name_plural = 'Корзины покупок'
