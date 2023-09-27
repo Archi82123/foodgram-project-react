@@ -108,6 +108,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'tags', 'author', 'ingredients', 'is_favorited', 'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time')
+        read_only_fields = ('author',)
 
     def create(self, validated_data):
         ingredients = validated_data.pop('recipe_m2m')

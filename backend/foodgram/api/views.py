@@ -61,12 +61,12 @@ class UsersViewSet(viewsets.ModelViewSet):
         return Response({'detail': 'Пароль успешно изменен.'}, status=status.HTTP_200_OK)
 
 
-class TagViewSet(viewsets.ModelViewSet):  #ReadOnlyModelViewSet
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
 
 
-class IngredientViewSet(viewsets.ModelViewSet):  #ReadOnlyModelViewSet
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
 
@@ -77,6 +77,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = RecipesPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipeFilter
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
     @action(detail=True, methods=['POST', 'DELETE'], url_path='favorite', permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
