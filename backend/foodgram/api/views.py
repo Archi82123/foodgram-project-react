@@ -1,4 +1,4 @@
-from django.db.migrations import serializer
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
@@ -9,8 +9,9 @@ from rest_framework.response import Response
 from users.models import User, Subscription
 from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe, RecipeIngredient, ShoppingCart
 
-from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer
+from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer
 from .pagination import UsersPagination, RecipesPagination
+from .filters import RecipeFilter
 
 
 class UsersViewSet(viewsets.ModelViewSet):
@@ -72,26 +73,10 @@ class IngredientViewSet(viewsets.ModelViewSet):  #ReadOnlyModelViewSet
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
+    serializer_class = RecipeCreateSerializer
     pagination_class = RecipesPagination
-
-    def get_queryset(self):
-        queryset = Recipe.objects.all()
-        author_id = self.request.query_params.get('author')
-        tags = self.request.query_params.getlist('tags')
-
-        if author_id:
-            author = get_object_or_404(User, id=author_id)
-            queryset = queryset.filter(author=author)
-
-        if tags:
-            queryset = queryset.filter(tags__slug__in=tags)
-
-        return queryset
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return RecipeCreateSerializer
-        return RecipeReadSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = RecipeFilter
 
     @action(detail=True, methods=['POST', 'DELETE'], url_path='favorite', permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
