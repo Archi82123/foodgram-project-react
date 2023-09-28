@@ -134,3 +134,7 @@ dmypy.json
 # .dump
 foodgram/dump.json
 .foodgram/dump.json
+
+#media
+media/
+backend/foodgram/media/
