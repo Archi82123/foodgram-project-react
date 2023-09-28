@@ -132,8 +132,7 @@ dmypy.json
 .idea
 
 # .dump
-foodgram/dump.json
-.foodgram/dump.json
+backend/foodgram/dump.json
 
 #media
 media/
