@@ -142,6 +142,29 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
         return recipe
 
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.cooking_time = validated_data.get('cooking_time', instance.cooking_time)
+
+        tags = validated_data.get('tags')
+        if tags:
+            instance.tags.set(tags)
+
+        ingredients = validated_data.get('recipe_m2m')
+        if ingredients:
+            instance.recipe_m2m.all().delete()
+            for ingredient in ingredients:
+                instance.ingredients.add(
+                    ingredient.get('id'),
+                    through_defaults={
+                        'amount': ingredient.get('amount')
+                    }
+                )
+
+        instance.save()
+        return instance
+
     def get_is_favorited(self, instance):
         request = self.context.get('request')
         user = request.user if request and request.user.is_authenticated else None

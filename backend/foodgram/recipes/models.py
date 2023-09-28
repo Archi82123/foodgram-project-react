@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -36,7 +37,7 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient', verbose_name='Ингредиенты')
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     image = models.ImageField(upload_to='recipes/images/', verbose_name='Изображение рецепта')
-    cooking_time = models.PositiveIntegerField(verbose_name='Время приготовления (в минутах)')
+    cooking_time = models.PositiveSmallIntegerField(verbose_name='Время приготовления (в минутах)', validators=[MinValueValidator(1)])
 
     def __str__(self):
         return self.name
