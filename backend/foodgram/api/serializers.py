@@ -116,7 +116,7 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class RecipeCreateSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
-    ingredients = RecipeIngredientSerializer(many=True, source='recipe_m2m')
+    ingredients = RecipeIngredientSerializer(many=True, source='recipes_ingredient')
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
     image = Base64ImageField()
@@ -127,7 +127,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ('author',)
 
     def create(self, validated_data):
-        ingredients = validated_data.pop('recipe_m2m')
+        ingredients = validated_data.pop('recipes_ingredient')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
@@ -151,9 +151,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         if tags:
             instance.tags.set(tags)
 
-        ingredients = validated_data.get('recipe_m2m')
+        ingredients = validated_data.get('recipes_ingredient')
         if ingredients:
-            instance.recipe_m2m.all().delete()
+            instance.recipes_ingredient.all().delete()
             for ingredient in ingredients:
                 instance.ingredients.add(
                     ingredient.get('id'),
@@ -187,7 +187,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 'id': ingredient.id,
                 'name': ingredient.name,
                 'measurement_unit': ingredient.measurement_unit,
-                'amount': instance.recipe_m2m.get(ingredient=ingredient).amount
+                'amount': instance.recipes_ingredient.get(ingredient=ingredient).amount
             }
             ingredients_info.append(ingredient_data)
 

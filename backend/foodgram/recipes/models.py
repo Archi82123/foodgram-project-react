@@ -48,8 +48,8 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='recipe_m2m', verbose_name='Рецепт')
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='ingredient_m2m', verbose_name='Ингредиент')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='recipes_ingredient', verbose_name='Рецепт')
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='ingredients_recipe', verbose_name='Ингредиент')
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Количество')
 
     class Meta:

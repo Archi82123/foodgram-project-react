@@ -1,10 +1,15 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, DestroyAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from django.http import FileResponse
+from django.http import HttpResponse
+import io
 
 from users.models import User, Subscription
 from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe, RecipeIngredient, ShoppingCart
@@ -161,3 +166,24 @@ class SubscribeUserView(CreateAPIView, DestroyAPIView):
         else:
             return Response({'detail': 'Вы не подписаны на этого пользователя.'},
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+# class DownloadShoppingCartView(APIView):
+#     permission_classes = [IsAuthenticated]
+#
+#     def get(self, request):
+#         user = request.user
+#         cart_recipes = ShoppingCart.objects.filter(user=user)
+#
+#         content = []
+#         for cart_recipe in cart_recipes:
+#             content.append(f"Рецепт: {cart_recipe.recipe.name}")
+#             content.append(f"Описание: {cart_recipe.recipe.text}")
+#             # content.append("Ингредиенты:")
+#             # for ingredient in cart_recipe.recipe.ingredients.all():
+#             #     content.append(f"- {ingredient.name}")
+#             content.append("\n")  # Добавьте пустую строку между рецептами
+#
+#         response = HttpResponse(content, content_type='text/plain')
+#         response['Content-Disposition'] = 'attachment; filename="shopping_cart.txt"'
+#         return response
