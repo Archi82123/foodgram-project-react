@@ -193,6 +193,8 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         is_subscribed = Subscription.objects.filter(user=user, author=author).exists()
 
+        recipes_limit = int(self.context['request'].query_params.get('recipes_limit', 5))
+
         data = {
             'email': author.email,
             'id': author.id,
@@ -200,13 +202,14 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'first_name': author.first_name,
             'last_name': author.last_name,
             'is_subscribed': is_subscribed,
-            'recipes': self.get_recipes(author),
+            'recipes': self.get_recipes(author)[:recipes_limit],
             'recipes_count': Recipe.objects.filter(author=author).count()
         }
+
         return data
 
     def get_recipes(self, author):
-        recipes = Recipe.objects.filter(author=author)
+        recipes = Recipe.objects.filter(author=author).order_by('-id')
         return [
             {
                 'id': recipe.id,

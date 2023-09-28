@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, DestroyAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from users.models import User, Subscription
@@ -38,13 +38,17 @@ class UsersViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(user)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['GET'], url_path='subscriptions')
+    @action(detail=False, methods=['GET'], url_path='subscriptions', permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
         user = self.request.user
         subscriptions = Subscription.objects.filter(user=user)
+        recipes_limit = int(request.query_params.get('recipes_limit', 5))
         page = self.paginate_queryset(subscriptions)
         serializer = SubscriptionSerializer(subscriptions, many=True,
                                             context={'request': request})
+        for item in serializer.data:
+            item['recipes'] = item['recipes'][:recipes_limit]
+
         return self.get_paginated_response(serializer.data)
 
     @action(detail=False, methods=['POST'], url_path='set_password', permission_classes=[IsAuthenticated])
@@ -79,10 +83,10 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeCreateSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     pagination_class = RecipesPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_class = RecipeFilter
+    # filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
