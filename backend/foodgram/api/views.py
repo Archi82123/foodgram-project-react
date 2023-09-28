@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from users.models import User, Subscription
 from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe, RecipeIngredient, ShoppingCart
 
-from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer
+from .permissions import UserPermissions
+from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer, ChangePasswordSerializer
 from .pagination import UsersPagination, RecipesPagination
 from .filters import RecipeFilter
 
@@ -18,7 +19,7 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UsersSerializer
     pagination_class = UsersPagination
-    permission_classes = [IsAuthenticated]
+    permission_classes = [UserPermissions]
 
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -49,16 +50,20 @@ class UsersViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'], url_path='set_password', permission_classes=[IsAuthenticated])
     def set_password(self, request):
         user = request.user
-        current_password = request.data.get('current_password')
-        new_password = request.data.get('new_password')
+        serializer = ChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            current_password = serializer.validated_data.get('current_password')
+            new_password = serializer.validated_data.get('new_password')
 
-        if not user.check_password(current_password):
-            return Response({'detail': 'Текущий пароль неверен.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not user.check_password(current_password):
+                return Response({'current_password': 'Введён неверный пароль'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user.set_password(new_password)
-        user.save()
+            user.set_password(new_password)
+            user.save()
 
-        return Response({'detail': 'Пароль успешно изменен.'}, status=status.HTTP_200_OK)
+            return Response({'detail': 'Пароль успешно изменен.'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -74,6 +79,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeCreateSerializer
+    permission_classes = [IsAuthenticated]
     pagination_class = RecipesPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipeFilter

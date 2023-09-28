@@ -3,11 +3,10 @@ from django.core.validators import EmailValidator
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 from djoser.serializers import UserCreateSerializer
-from rest_framework.generics import get_object_or_404
 
 from .validators import UnicodeUsernameValidator
 
-from users.models import Subscription
+from users.models import User, Subscription
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient, FavoriteRecipe, ShoppingCart
 
 
@@ -62,6 +61,18 @@ class UsersSerializer(UserCreateSerializer):
             'password',
         )
 
+    def validate(self, data):
+        email = data.get('email')
+        username = data.get('username')
+
+        if email and User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({'email': 'Пользователь с такой почтой уже существует.'})
+
+        if username and User.objects.filter(username=username).exists():
+            raise serializers.ValidationError({'username': 'Пользователь с таким именем уже существует.'})
+
+        return data
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
@@ -74,6 +85,11 @@ class UsersSerializer(UserCreateSerializer):
                 data.pop('is_subscribed', None)
 
         return data
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
 
 
 class TagSerializer(serializers.ModelSerializer):
