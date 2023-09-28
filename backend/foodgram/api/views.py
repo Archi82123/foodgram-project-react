@@ -1,5 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, DestroyAPIView
@@ -12,7 +12,7 @@ from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe, RecipeIngred
 from .permissions import UserPermissions
 from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer, ChangePasswordSerializer
 from .pagination import UsersPagination, RecipesPagination
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 
 
 class UsersViewSet(viewsets.ModelViewSet):
@@ -80,6 +80,8 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = IngredientFilter
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -88,7 +90,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     pagination_class = RecipesPagination
     filter_backends = [DjangoFilterBackend]
-    # filterset_class = RecipeFilter
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
