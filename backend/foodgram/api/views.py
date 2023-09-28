@@ -42,14 +42,16 @@ class UsersViewSet(viewsets.ModelViewSet):
     def subscriptions(self, request):
         user = self.request.user
         subscriptions = Subscription.objects.filter(user=user)
+
+        paginator = UsersPagination()
+        page = paginator.paginate_queryset(subscriptions, request)
+        serializer = SubscriptionSerializer(page, many=True, context={'request': request})
+
         recipes_limit = int(request.query_params.get('recipes_limit', 5))
-        page = self.paginate_queryset(subscriptions)
-        serializer = SubscriptionSerializer(subscriptions, many=True,
-                                            context={'request': request})
         for item in serializer.data:
             item['recipes'] = item['recipes'][:recipes_limit]
 
-        return self.get_paginated_response(serializer.data)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(detail=False, methods=['POST'], url_path='set_password', permission_classes=[IsAuthenticated])
     def set_password(self, request):
