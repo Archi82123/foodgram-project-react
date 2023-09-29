@@ -1,6 +1,6 @@
 from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, DestroyAPIView
@@ -18,14 +18,14 @@ from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe, RecipeIngred
 
 from .permissions import UserPermissions, IsRecipeAuthorOrReadOnly
 from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer, ChangePasswordSerializer
-from .pagination import UsersPagination, RecipesPagination
+from .pagination import PageLimitPagination
 from .filters import RecipeFilter, IngredientFilter
 
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UsersSerializer
-    pagination_class = UsersPagination
+    pagination_class = PageLimitPagination
     permission_classes = [UserPermissions]
 
     def list(self, request, *args, **kwargs):
@@ -50,7 +50,7 @@ class UsersViewSet(viewsets.ModelViewSet):
         user = self.request.user
         subscriptions = Subscription.objects.filter(user=user)
 
-        paginator = UsersPagination()
+        paginator = PageLimitPagination()
         page = paginator.paginate_queryset(subscriptions, request)
         serializer = SubscriptionSerializer(page, many=True, context={'request': request})
 
@@ -92,15 +92,26 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.all().order_by('-id')
     serializer_class = RecipeSerializer
     permission_classes = [IsRecipeAuthorOrReadOnly]
-    pagination_class = RecipesPagination
+    pagination_class = PageLimitPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['POST', 'DELETE'], url_path='favorite', permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):

@@ -1,12 +1,15 @@
 import django_filters
-from recipes.models import Recipe, Ingredient
+from recipes.models import Recipe, Ingredient, Tag
+from django_filters.rest_framework import filters
 
 
 class RecipeFilter(django_filters.FilterSet):
     is_favorited = django_filters.NumberFilter(method='filter_is_favorited')
     is_in_shopping_cart = django_filters.NumberFilter(method='filter_is_in_shopping_cart')
     author = django_filters.NumberFilter(field_name='author__id', method='filter_by_author')
-    tags = django_filters.CharFilter(field_name='tags__slug', method='filter_by_tags')
+    tags = filters.ModelMultipleChoiceFilter(field_name='tags__slug',
+                                            to_field_name='slug',
+                                            queryset=Tag.objects.all())
 
     class Meta:
         model = Recipe
@@ -31,14 +34,11 @@ class RecipeFilter(django_filters.FilterSet):
     def filter_by_author(self, queryset, name, value):
         return queryset.filter(author__id=value)
 
-    def filter_by_tags(self, queryset, name, value):
-        return queryset.filter(tags__slug=value)
-
 
 class IngredientFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
         field_name='name',
-        lookup_expr='icontains',
+        lookup_expr='istartswith',
     )
 
     class Meta:

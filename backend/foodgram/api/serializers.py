@@ -3,7 +3,6 @@ from django.core.validators import EmailValidator
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 from djoser.serializers import UserCreateSerializer
-
 from .validators import UnicodeUsernameValidator
 
 from users.models import User, Subscription
