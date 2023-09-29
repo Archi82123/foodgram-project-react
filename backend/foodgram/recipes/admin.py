@@ -1,9 +1,29 @@
 from django.contrib import admin
-from .models import Recipe, Ingredient, Tag # , Subscription, ShoppingList, Favorite
+from .models import Recipe, Ingredient, Tag, FavoriteRecipe
 
-admin.site.register(Recipe)
-admin.site.register(Ingredient)
-admin.site.register(Tag)
-# admin.site.register(Subscription)
-# admin.site.register(ShoppingList)
-# admin.site.register(Favorite)
+
+class IngredientAdmin(admin.ModelAdmin):
+    list_display = ('name', 'measurement_unit')
+    list_filter = ('name',)
+
+
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'color')
+    list_filter = ('name',)
+
+
+class RecipeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'author')
+    list_filter = ('name', 'author', 'tags')
+    readonly_fields = ('favorited_count',)
+
+    def favorited_count(self, obj):
+        return obj.favorited_by.count()
+
+    favorited_count.short_description = 'Количество добавлений в избранное'
+
+
+admin.site.register(Ingredient, IngredientAdmin)
+admin.site.register(Tag, TagAdmin)
+admin.site.register(Recipe, RecipeAdmin)
+admin.site.register(FavoriteRecipe)
