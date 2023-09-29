@@ -1,3 +1,4 @@
+from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
@@ -6,16 +7,17 @@ from rest_framework.generics import CreateAPIView, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from wsgiref.util import FileWrapper
 from django.http import FileResponse
 from django.http import HttpResponse
 import io
+from collections import defaultdict
 
 from users.models import User, Subscription
 from recipes.models import Tag, Ingredient, Recipe, FavoriteRecipe, RecipeIngredient, ShoppingCart
 
 from .permissions import UserPermissions, IsRecipeAuthorOrReadOnly
-from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeCreateSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer, ChangePasswordSerializer
+from .serializers import UsersSerializer, TagSerializer, IngredientSerializer, RecipeSerializer, SubscriptionSerializer, FavoriteRecipeSerializer, ShoppingCartSerializer, ChangePasswordSerializer
 from .pagination import UsersPagination, RecipesPagination
 from .filters import RecipeFilter, IngredientFilter
 
@@ -91,7 +93,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeCreateSerializer
+    serializer_class = RecipeSerializer
     permission_classes = [IsRecipeAuthorOrReadOnly]
     pagination_class = RecipesPagination
     filter_backends = [DjangoFilterBackend]
@@ -136,6 +138,31 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response({'detail': 'Этого рецепта нет в списке покупок'}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['GET'], url_path='download_shopping_cart', permission_classes=(IsAuthenticated,))
+    def download_shopping_cart(self, *args, **kwargs):
+        user = self.request.user
+        shop_carts = ShoppingCart.objects.filter(user=user)
+
+        ingredients_total = defaultdict(float)
+
+        for shop_cart in shop_carts:
+            recipe_ingredients = RecipeIngredient.objects.filter(recipe=shop_cart.recipe)
+            for ingredient in recipe_ingredients:
+                ingredient_name = ingredient.ingredient.name
+                ingredient_amount = ingredient.amount
+                ingredients_total[ingredient_name] += ingredient_amount
+
+        shopping_list = []
+        for ingredient_name, ingredient_amount in ingredients_total.items():
+            ingredient_unit = Ingredient.objects.get(name=ingredient_name).measurement_unit
+            shopping_list.append(f'{ingredient_name} - {ingredient_amount} {ingredient_unit}')
+
+        shopping_list_text = 'Список покупок:\n\n' + '\n'.join(shopping_list)
+
+        response = HttpResponse(shopping_list_text, content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename="shopping-list.txt"'
+        return response
+
 
 class SubscribeUserView(CreateAPIView, DestroyAPIView):
     queryset = Subscription.objects.all()
@@ -166,24 +193,3 @@ class SubscribeUserView(CreateAPIView, DestroyAPIView):
         else:
             return Response({'detail': 'Вы не подписаны на этого пользователя.'},
                             status=status.HTTP_400_BAD_REQUEST)
-
-
-# class DownloadShoppingCartView(APIView):
-#     permission_classes = [IsAuthenticated]
-#
-#     def get(self, request):
-#         user = request.user
-#         cart_recipes = ShoppingCart.objects.filter(user=user)
-#
-#         content = []
-#         for cart_recipe in cart_recipes:
-#             content.append(f"Рецепт: {cart_recipe.recipe.name}")
-#             content.append(f"Описание: {cart_recipe.recipe.text}")
-#             # content.append("Ингредиенты:")
-#             # for ingredient in cart_recipe.recipe.ingredients.all():
-#             #     content.append(f"- {ingredient.name}")
-#             content.append("\n")  # Добавьте пустую строку между рецептами
-#
-#         response = HttpResponse(content, content_type='text/plain')
-#         response['Content-Disposition'] = 'attachment; filename="shopping_cart.txt"'
-#         return response

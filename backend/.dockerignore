@@ -1,0 +1,10 @@
+venv
+.git
+.env
+
+foodgram/db.sqlite3
+foodgram/db.sqlite3.bak
+db.sqlite3
+db.sqlite3.bak
+
+foodgram/media
