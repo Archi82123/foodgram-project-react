@@ -1,15 +1,25 @@
 import django_filters
-from recipes.models import Recipe, Ingredient, Tag
 from django_filters.rest_framework import filters
+
+from recipes.models import Recipe, Ingredient, Tag
 
 
 class RecipeFilter(django_filters.FilterSet):
-    is_favorited = django_filters.NumberFilter(method='filter_is_favorited')
-    is_in_shopping_cart = django_filters.NumberFilter(method='filter_is_in_shopping_cart')
-    author = django_filters.NumberFilter(field_name='author__id', method='filter_by_author')
-    tags = filters.ModelMultipleChoiceFilter(field_name='tags__slug',
-                                            to_field_name='slug',
-                                            queryset=Tag.objects.all())
+    is_favorited = django_filters.NumberFilter(
+        method='filter_is_favorited'
+    )
+    is_in_shopping_cart = django_filters.NumberFilter(
+        method='filter_is_in_shopping_cart',
+    )
+    author = django_filters.NumberFilter(
+        field_name='author__id',
+        method='filter_by_author',
+    )
+    tags = filters.ModelMultipleChoiceFilter(
+        field_name='tags__slug',
+        to_field_name='slug',
+        queryset=Tag.objects.all()
+    )
 
     class Meta:
         model = Recipe
