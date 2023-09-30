@@ -9,6 +9,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['51.250.30.118', '127.0.0.1', 'localhost', 'thefoodgram.redirectme.net']
 
+CSRF_TRUSTED_ORIGINS = ['https://thefoodgram.redirectme.net']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
