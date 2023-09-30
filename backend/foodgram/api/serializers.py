@@ -160,7 +160,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 through_defaults={
                     'amount': ingredient.get('amount')
                 }
-             )
+            )
 
         return recipe
 
