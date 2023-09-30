@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-ekagf3w6vt*@@g=-q3ydj-$f5v7g5f_35q5op4uc_6i0x((xk*
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['51.250.30.118', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['51.250.30.118', '127.0.0.1', 'localhost', 'thefoodgram.redirectme.net']
 
 
 INSTALLED_APPS = [
