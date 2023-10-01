@@ -1,7 +1,7 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = get_user_model()
 
@@ -37,6 +37,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name='recipes',
         verbose_name='Автор'
     )
     name = models.CharField(max_length=200, verbose_name='Название рецепта')
@@ -53,7 +54,10 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления (в минутах)',
-        validators=[MinValueValidator(1)]
+        validators=(
+            MinValueValidator(settings.MIN_COOKING_TIME),
+            MaxValueValidator(settings.MAX_COOKING_TIME),
+        )
     )
 
     def __str__(self):
@@ -77,7 +81,13 @@ class RecipeIngredient(models.Model):
         related_name='ingredients_recipe',
         verbose_name='Ингредиент'
     )
-    amount = models.FloatField(verbose_name='Количество')
+    amount = models.FloatField(
+        verbose_name='Количество',
+        validators=(
+            MinValueValidator(settings.MIN_AMOUNT),
+            MaxValueValidator(settings.MAX_AMOUNT),
+        )
+    )
 
     class Meta:
         constraints = (

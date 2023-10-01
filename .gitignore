@@ -135,7 +135,7 @@ dmypy.json
 # .dump
 backend/foodgram/dump.json
 
-#media
+#media/static
 media/
 backend/foodgram/media/
 backend/foodgram/collected_static/

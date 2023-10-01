@@ -27,4 +27,4 @@ class Subscription(models.Model):
         )
 
     def __str__(self):
-        return f"Автор: {self.author}, подписчик: {self.user}"
+        return f'Автор: {self.author}, подписчик: {self.user}'
