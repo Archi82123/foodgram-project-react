@@ -1,16 +1,16 @@
 import base64
-from rest_framework import serializers
-from django.db import transaction
+
 from django.conf import settings
-from djoser.serializers import UserCreateSerializer
-from django.core.validators import EmailValidator
 from django.core.files.base import ContentFile
+from django.core.validators import EmailValidator
+from django.db import transaction
+from djoser.serializers import UserCreateSerializer
+from rest_framework import serializers
 
 from api.validators import UnicodeUsernameValidator
+from recipes.models import (Tag, Ingredient, Recipe,
+                            RecipeIngredient, FavoriteRecipe, ShoppingCart)
 from users.models import User, Subscription
-from recipes.models import (Tag, Ingredient,
-                            Recipe, RecipeIngredient,
-                            FavoriteRecipe, ShoppingCart)
 
 EMAIL_ERROR = {'email': 'Пользователь с такой почтой уже существует.'}
 USERNAME_ERROR = {'username': 'Пользователь с таким именем уже существует.'}
@@ -35,16 +35,16 @@ class Base64ImageField(serializers.ImageField):
 class UsersSerializer(UserCreateSerializer):
     id = serializers.ReadOnlyField()
     email = serializers.CharField(
-        validators=[
+        validators=(
             EmailValidator(),
-        ],
+        ),
         max_length=254,
         required=True
     )
     username = serializers.CharField(
-        validators=[
+        validators=(
             UnicodeUsernameValidator(),
-        ],
+        ),
         max_length=150,
         required=True
     )
@@ -88,16 +88,15 @@ class UsersSerializer(UserCreateSerializer):
         data = super().to_representation(instance)
         request = self.context.get('request')
 
-        if request and request.method == 'GET':
-            if request.user.is_authenticated:
-                user = request.user
-                data['is_subscribed'] = Subscription.objects.filter(
-                    user=user, author=instance
-                ).exists()
-            else:
-                data.pop('is_subscribed', None)
-
-        return data
+        if request and request.method != 'GET':
+            return data
+        if request.user.is_authenticated:
+            user = request.user
+            data['is_subscribed'] = Subscription.objects.filter(
+                user=user, author=instance
+            ).exists()
+        else:
+            data.pop('is_subscribed', None)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -294,8 +293,8 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return data
 
     def get_recipes(self, author, recipes_limit):
-        recipes = author.recipes.all().order_by('-id')[:recipes_limit]
-        return [
+        recipes = author.recipes.all()[:recipes_limit]
+        return (
             {
                 'id': recipe.id,
                 'name': recipe.name,
@@ -303,7 +302,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
                 'cooking_time': recipe.cooking_time,
             }
             for recipe in recipes
-        ]
+        )
 
 
 class BaseRecipeSerializer(serializers.ModelSerializer):

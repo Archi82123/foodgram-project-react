@@ -1,13 +1,13 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.generics import CreateAPIView, DestroyAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.generics import CreateAPIView, DestroyAPIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
 
 from api.serializers import (UsersSerializer, TagSerializer,
                              IngredientSerializer, RecipeSerializer,
@@ -23,17 +23,14 @@ from recipes.models import (Tag, Ingredient,
 
 SHOPPING_LIST_FILE_TYPE = 'text/plain'
 
+WRONG_PASSWORD_ERROR = {'current_password': 'Введён неверный пароль'}
+PASSWORD_CHANGE_COMPLETE = {'detail': 'Пароль успешно изменен.'}
+
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UsersSerializer
     pagination_class = PageLimitPagination
-
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.action in ('create', 'list'):
@@ -85,11 +82,12 @@ class UsersViewSet(viewsets.ModelViewSet):
     def set_password(self, request):
         user = request.user
         serializer = ChangePasswordSerializer(data=request.data)
-        try:
-            serializer.is_valid(raise_exception=True)
-        except Exception:
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         current_password = (serializer
                             .validated_data.get('current_password'))
@@ -97,17 +95,14 @@ class UsersViewSet(viewsets.ModelViewSet):
 
         if not user.check_password(current_password):
             return Response(
-                {'current_password': 'Введён неверный пароль'},
+                WRONG_PASSWORD_ERROR,
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         user.set_password(new_password)
         user.save()
 
-        return Response(
-            {'detail': 'Пароль успешно изменен.'},
-            status=status.HTTP_200_OK
-        )
+        return Response(PASSWORD_CHANGE_COMPLETE, status=status.HTTP_200_OK)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -123,7 +118,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all().order_by('-id')
+    queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (IsRecipeAuthorOrReadOnly,)
     pagination_class = PageLimitPagination
