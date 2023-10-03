@@ -72,7 +72,6 @@ DATABASES = {
     }
 }
 
-
 AUTH_PASSWORD_VALIDATORS = (
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -136,8 +135,7 @@ MAX_AMOUNT = 1000
 MIN_COOKING_TIME = 1
 MAX_COOKING_TIME = 1440
 
-DUPLICATE_INGREDIENT_ERROR = {'ingredients':
-                              'Ингредиенты не могут повторяться.'}
+DUPLICATE_INGREDIENT_ERROR = 'Ингредиенты не могут повторяться.'
 AMOUNT_ERROR = {'amount': f'Количество ингредиента должно быть '
                           f'не менее {MIN_AMOUNT} '
                           f'и не более {MAX_AMOUNT}.'}

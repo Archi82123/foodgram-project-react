@@ -15,6 +15,8 @@ from users.models import User, Subscription
 EMAIL_ERROR = {'email': 'Пользователь с такой почтой уже существует.'}
 USERNAME_ERROR = {'username': 'Пользователь с таким именем уже существует.'}
 
+ING_ERROR = "Ингредиенты должны быть уникальными"
+
 
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
@@ -250,18 +252,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         ingredients = data.get('recipes_ingredient')
-        ingredient_ids = set()
 
-        for ingredient in ingredients:
-            ingredient_id = ingredient.get('id')
-            amount = ingredient.get('amount')
-            if amount < settings.MIN_AMOUNT or amount > settings.MAX_AMOUNT:
-                raise serializers.ValidationError(settings.AMOUNT_ERROR)
-            if ingredient_id in ingredient_ids:
+        if ingredients:
+            ingredient_id = [ingredient['id'].id for ingredient in ingredients]
+            if len(ingredient_id) != len(set(ingredient_id)):
                 raise serializers.ValidationError(
                     settings.DUPLICATE_INGREDIENT_ERROR
                 )
-            ingredient_ids.add(ingredient_id)
 
         return data
 
