@@ -12,6 +12,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')]
 
+
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -134,3 +135,10 @@ MAX_AMOUNT = 1000
 
 MIN_COOKING_TIME = 1
 MAX_COOKING_TIME = 1440
+
+DUPLICATE_INGREDIENT_ERROR = {'ingredients':
+                              'Ингредиенты не могут повторяться.'}
+AMOUNT_ERROR = {'amount': f'Количество ингредиента должно быть '
+                          f'не менее {MIN_AMOUNT} '
+                          f'и не более {MAX_AMOUNT}.'}
+COOKING_TIME_ERROR = 'Время приготовления дожно быть не более 24 часов'

@@ -55,8 +55,14 @@ class Recipe(models.Model):
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления (в минутах)',
         validators=(
-            MinValueValidator(settings.MIN_COOKING_TIME),
-            MaxValueValidator(settings.MAX_COOKING_TIME),
+            MinValueValidator(
+                settings.MIN_COOKING_TIME,
+                settings.COOKING_TIME_ERROR
+            ),
+            MaxValueValidator(
+                settings.MAX_COOKING_TIME,
+                settings.COOKING_TIME_ERROR
+            )
         )
     )
 
@@ -85,12 +91,17 @@ class RecipeIngredient(models.Model):
     amount = models.FloatField(
         verbose_name='Количество',
         validators=(
-            MinValueValidator(settings.MIN_AMOUNT),
-            MaxValueValidator(settings.MAX_AMOUNT),
+            MinValueValidator(settings.MIN_AMOUNT, settings.AMOUNT_ERROR),
+            MaxValueValidator(settings.MAX_AMOUNT, settings.AMOUNT_ERROR),
         )
     )
 
+    def __str__(self):
+        return f"{self.recipe.name} - {self.ingredient.name}"
+
     class Meta:
+        verbose_name = 'Ингредиент рецепта'
+        verbose_name_plural = 'Ингредиенты рецепта'
         constraints = (
             models.UniqueConstraint(
                 fields=('recipe', 'ingredient'),
@@ -113,9 +124,12 @@ class FavoriteRecipe(models.Model):
         verbose_name='Избранный рецепт'
     )
 
+    def __str__(self):
+        return f"{self.user.username} - {self.recipe.name}"
+
     class Meta:
-        verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранные'
+        verbose_name = 'Избранный рецепт'
+        verbose_name_plural = 'Избранные рецепты'
         constraints = (
             models.UniqueConstraint(
                 fields=('user', 'recipe'),

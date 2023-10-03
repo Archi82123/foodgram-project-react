@@ -29,7 +29,7 @@ class RecipeFilter(django_filters.FilterSet):
         user = self.request.user
         if value == 1 and user.is_authenticated:
             return queryset.filter(favorited_by__user=user)
-        elif value == 0:
+        elif value == 0 and user.is_authenticated:
             return queryset.exclude(favorited_by__user=user)
         return queryset
 
@@ -37,7 +37,7 @@ class RecipeFilter(django_filters.FilterSet):
         user = self.request.user
         if value == 1 and user.is_authenticated:
             return queryset.filter(users_cart__user=user)
-        elif value == 0:
+        elif value == 0 and user.is_authenticated:
             return queryset.exclude(users_cart__user=user)
         return queryset
 

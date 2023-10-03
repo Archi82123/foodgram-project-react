@@ -15,12 +15,6 @@ from users.models import User, Subscription
 EMAIL_ERROR = {'email': 'Пользователь с такой почтой уже существует.'}
 USERNAME_ERROR = {'username': 'Пользователь с таким именем уже существует.'}
 
-DUPLICATE_INGREDIENT_ERROR = {'ingredients':
-                              'Ингредиенты не могут повторяться.'}
-AMOUNT_ERROR = {'amount': f'Количество ингредиента должно быть не более '
-                          f'{settings.MAX_AMOUNT}.'}
-COOKING_TIME_ERROR = 'Время приготовления дожно быть не более 24 часов'
-
 
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
@@ -88,15 +82,16 @@ class UsersSerializer(UserCreateSerializer):
         data = super().to_representation(instance)
         request = self.context.get('request')
 
-        if request and request.method != 'GET':
-            return data
-        if request.user.is_authenticated:
-            user = request.user
-            data['is_subscribed'] = Subscription.objects.filter(
-                user=user, author=instance
-            ).exists()
-        else:
-            data.pop('is_subscribed', None)
+        if request and request.method == 'GET':
+            if request.user.is_authenticated:
+                user = request.user
+                data['is_subscribed'] = Subscription.objects.filter(
+                    user=user, author=instance
+                ).exists()
+            else:
+                data.pop('is_subscribed', None)
+
+        return data
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -202,15 +197,19 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, instance):
         request = self.context.get('request')
-        return FavoriteRecipe.objects.filter(
-            user=request.user, recipe=instance
-        ).exists()
+        if request and request.user.is_authenticated:
+            return FavoriteRecipe.objects.filter(
+                user=request.user, recipe=instance
+            ).exists()
+        return False
 
     def get_is_in_shopping_cart(self, instance):
         request = self.context.get('request')
-        return ShoppingCart.objects.filter(
-            user=request.user, recipe=instance
-        ).exists()
+        if request and request.user.is_authenticated:
+            return ShoppingCart.objects.filter(
+                user=request.user, recipe=instance
+            ).exists()
+        return False
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -234,17 +233,19 @@ class RecipeSerializer(serializers.ModelSerializer):
         data['author'] = author_info
         data['ingredients'] = ingredients_info
 
-        if request.user:
+        if request.user and request.user.is_authenticated:
             data['author']['is_subscribed'] = Subscription.objects.filter(
                 user=request.user, author=instance.author
             ).exists()
+        else:
+            data['author']['is_subscribed'] = False
 
         return data
 
     def validate_cooking_time(self, value):
         if (value < settings.MIN_COOKING_TIME
                 or value > settings.MAX_COOKING_TIME):
-            raise serializers.ValidationError(COOKING_TIME_ERROR)
+            raise serializers.ValidationError(settings.COOKING_TIME_ERROR)
         return value
 
     def validate(self, data):
@@ -255,9 +256,11 @@ class RecipeSerializer(serializers.ModelSerializer):
             ingredient_id = ingredient.get('id')
             amount = ingredient.get('amount')
             if amount < settings.MIN_AMOUNT or amount > settings.MAX_AMOUNT:
-                raise serializers.ValidationError(AMOUNT_ERROR)
+                raise serializers.ValidationError(settings.AMOUNT_ERROR)
             if ingredient_id in ingredient_ids:
-                raise serializers.ValidationError(DUPLICATE_INGREDIENT_ERROR)
+                raise serializers.ValidationError(
+                    settings.DUPLICATE_INGREDIENT_ERROR
+                )
             ingredient_ids.add(ingredient_id)
 
         return data

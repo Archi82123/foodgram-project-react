@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from users.models import User
+from users.models import User, Subscription
 
 
 class MyUserAdmin(UserAdmin):
@@ -27,4 +27,11 @@ class MyUserAdmin(UserAdmin):
     )
 
 
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'author')
+    list_filter = ('user', 'author')
+    search_fields = ('user__username', 'author__username')
+
+
 admin.site.register(User, MyUserAdmin)
+admin.site.register(Subscription, SubscriptionAdmin)
