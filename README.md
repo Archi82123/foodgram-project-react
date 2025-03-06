@@ -9,7 +9,6 @@
 
 - Проект завернут в Docker-контейнеры;
 - Образы foodgram_backend и foodgram_frontend запушены на DockerHub;
-- Адрес сервера: https://thefoodgram.redirectme.net/recipes
 
 ### Развертывание
 
